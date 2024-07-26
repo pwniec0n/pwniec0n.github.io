@@ -6,17 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PwnieC0n</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="mask-icon" href="images/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
 </head>
 <body>
     
     <canvas id="rainbow-matrix"></canvas>
+    <div id="gradient"></div>
 
     <img id="logo" src="svg/bluepwnie.svg" alt="">
-
-    <div class="progress">
-        <div class="progress-value"><span>Planning...</span></div>
+    
+    <div id="password-container">
+        <input id="password-input" type="password" placeholder="enter password"/>
+        <span id="checkmark" class="checkmark">&#10003;</span>
+    </div>
+    
+    <div id="render-container" class="above">
+        <div id="contents">
+        </div>
     </div>
 
     <script src="js/script.js"></script>
+    <script src="js/crypto.js"></script>
 </body>
 </html>
