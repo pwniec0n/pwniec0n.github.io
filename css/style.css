@@ -236,7 +236,7 @@ div#password-container {
 
 #posts .post .post-content h3 {
   font-weight: 700;
-  font-size: 3.7rem;
+  font-size: 3rem;
   margin: 0;
 }
 
@@ -285,5 +285,5 @@ h3[data-puff]::before {
 
 
 div.above {
-  top: -2750px !important;
+  top: -6000px !important;
 }
