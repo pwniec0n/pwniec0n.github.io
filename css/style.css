@@ -260,6 +260,9 @@ h3[data-puff]::before {
     text-shadow:none;
 }
 
+s {
+  opacity: 30%;
+}
 
 #posts .post .post-content p {
   font-size: 1.4rem;
