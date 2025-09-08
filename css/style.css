@@ -11,6 +11,9 @@ body {
   background-color: #684eff;
   text-align: center;
 }
+body, html {
+  overflow-x: hidden;
+}
 
 #rainbow-matrix {
   display: block;
@@ -44,7 +47,8 @@ body {
 }
 
 #logo.small {
-  max-height: 12rem;
+ max-height: 25rem;
+ max-width: 25rem;
 }
 
 .hidden {
