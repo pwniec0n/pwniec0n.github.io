@@ -1,50 +1,75 @@
-var c = document.getElementById("rainbow-matrix");
-var ctx = c.getContext("2d");
+const canvas = document.getElementById("rainbow-matrix");
+const ctx = canvas.getContext("2d");
 
-//making the canvas full screen
-c.height = window.innerHeight;
-c.width = window.innerWidth;
+const encodedMessage =
+  "V2FrZSB1cCwgcHduaWVzLi4uClRoZSB3b3JsZCBoYXMgeW91CmZvbGxvdyB0aGUgYmx1ZSBwd25pZS4KS25vY2ssIGtub2NrLCBwd25pZXMuIA==";
 
-//english characters
-var message = "V2FrZSB1cCwgcHduaWVzLi4uClRoZSB3b3JsZCBoYXMgeW91CmZvbGxvdyB0aGUgYmx1ZSBwd25pZS4KS25vY2ssIGtub2NrLCBwd25pZXMuIA==";
-//converting the string into an array of single characters
-message = message.split("");
+const message = encodedMessage.split("");
 
-var font_size = 15;
-var columns = Math.floor(c.width/font_size); //number of columns for the rain
-//an array of drops - one per column
-var drops = [];
-//x below is the x coordinate
-//1 = y co-ordinate of the drop(same for every drop initially)
-for(var x = 0; x < columns; x++)
-	drops[x] = c.height; 
+const fontSize = 15;
 
-//drawing the characters
-function draw()
-{
-	//Black BG for the canvas
-	//translucent BG to show trail
-	ctx.fillStyle = "rgba(104, 78, 255, .3)";
-	ctx.fillRect(0, 0, c.width, c.height);
-	
-	ctx.fillStyle = "rgba(255,123,245,.7)"; //green text
-	ctx.font = font_size + "px system-ui";
-	//looping over drops
-	for(var i = 0; i < drops.length; i++)
-	{
-		//a random character to print
-		var text = message[Math.floor(Math.random()*message.length)];
-		//x = i*font_size, y = value of drops[i]*font_size
-		ctx.fillText(text, i*font_size, drops[i]*font_size);
-		
-		//sending the drop back to the top randomly after it has crossed the screen
-		//adding a randomness to the reset to make the drops scattered on the Y axis
-		if(drops[i]*font_size > c.height && Math.random() > 0.975)
-			drops[i] = 0;
-		
-		//incrementing Y coordinate
-		drops[i]++;
-	}
+let columns = 0;
+let drops = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  columns = Math.floor(canvas.width / fontSize);
+
+  /*
+   * Preserve existing drop state when possible instead of resetting
+   * the entire animation every time the browser is resized.
+   */
+  const oldDrops = drops;
+
+  drops = Array.from(
+    { length: columns },
+    (_, i) => oldDrops[i] ?? Math.floor(Math.random() * canvas.height / fontSize)
+  );
 }
 
-setInterval(draw, 33);
+function draw() {
+  ctx.fillStyle = "rgba(104, 78, 255, 0.3)";
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  ctx.fillStyle = "rgba(255, 123, 245, 0.7)";
+  ctx.font = `${fontSize}px system-ui`;
+
+  for (let i = 0; i < drops.length; i++) {
+    const text =
+      message[Math.floor(Math.random() * message.length)];
+
+    ctx.fillText(
+      text,
+      i * fontSize,
+      drops[i] * fontSize
+    );
+
+    if (
+      drops[i] * fontSize > canvas.height &&
+      Math.random() > 0.975
+    ) {
+      drops[i] = 0;
+    }
+
+    drops[i]++;
+  }
+}
+
+resizeCanvas();
+
+window.addEventListener(
+  "resize",
+  resizeCanvas
+);
+
+setInterval(
+  draw,
+  33
+);

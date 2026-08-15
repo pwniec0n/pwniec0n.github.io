@@ -1,149 +1,349 @@
-// based on: https://blog.elantha.com/encrypt-in-the-browser/
+const PBKDF2_ITERATIONS = 100000;
 
-async function encrypt(content, password) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  const key = await getKey(password, salt);
+async function decrypt(
+  encryptedData,
+  password
+) {
 
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const salt =
+    base64ToBytes(
+      encryptedData.salt
+    );
 
-  const contentBytes = stringToBytes(content);
+  const iv =
+    base64ToBytes(
+      encryptedData.iv
+    );
 
-  const cipher = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, contentBytes)
+  const cipher =
+    base64ToBytes(
+      encryptedData.cipher
+    );
+
+
+  const key =
+    await getKey(
+      password,
+      salt
+    );
+
+
+  const contentBytes =
+    new Uint8Array(
+      await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv
+        },
+        key,
+        cipher
+      )
+    );
+
+
+  return bytesToString(
+    contentBytes
   );
-
-  return {
-    salt: bytesToBase64(salt),
-    iv: bytesToBase64(iv),
-    cipher: bytesToBase64(cipher),
-  };
 }
 
-let decrypt = async function (encryptedData, password) {
-  const salt = base64ToBytes(encryptedData.salt);
 
-  const key = await getKey(password, salt);
+async function getKey(
+  password,
+  salt
+) {
 
-  const iv = base64ToBytes(encryptedData.iv);
+  const passwordBytes =
+    stringToBytes(password);
 
-  const cipher = base64ToBytes(encryptedData.cipher);
 
-  const contentBytes = new Uint8Array(
-    await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher)
-  );
+  const initialKey =
+    await crypto.subtle.importKey(
+      "raw",
+      passwordBytes,
+      {
+        name: "PBKDF2"
+      },
+      false,
+      [
+        "deriveKey"
+      ]
+    );
 
-  return bytesToString(contentBytes);
-};
-
-async function getKey(password, salt) {
-  const passwordBytes = stringToBytes(password);
-
-  const initialKey = await crypto.subtle.importKey(
-    "raw",
-    passwordBytes,
-    { name: "PBKDF2" },
-    false,
-    ["deriveKey"]
-  );
 
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    {
+      name: "PBKDF2",
+      salt,
+      iterations:
+        PBKDF2_ITERATIONS,
+      hash: "SHA-256"
+    },
     initialKey,
-    { name: "AES-GCM", length: 256 },
+    {
+      name: "AES-GCM",
+      length: 256
+    },
     false,
-    ["encrypt", "decrypt"]
+    [
+      "decrypt"
+    ]
   );
 }
 
-// conversion helpers
-
-function bytesToString(bytes) {
-  return new TextDecoder().decode(bytes);
-}
 
 function stringToBytes(str) {
-  return new TextEncoder().encode(str);
+  return new TextEncoder()
+    .encode(str);
 }
 
-function bytesToBase64(arr) {
-  return btoa(Array.from(arr, (b) => String.fromCharCode(b)).join(""));
+
+function bytesToString(bytes) {
+  return new TextDecoder()
+    .decode(bytes);
 }
+
 
 function base64ToBytes(base64) {
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  return Uint8Array.from(
+    atob(base64),
+    char =>
+      char.charCodeAt(0)
+  );
 }
 
-// other helpers
-async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+
+function sleep(ms) {
+  return new Promise(
+    resolve =>
+      setTimeout(resolve, ms)
+  );
 }
 
-// Encrypted Content
-const ct_serial = "eyJzYWx0IjoiaGgyTythYnphK0pBNTFIcFdVUUg5Zz09IiwiaXYiOiJlRkdFSm43eEh5RnYvZ09lIiwiY2lwaGVyIjoiSEo0dml4RFZOUE9FYU9uSnhkS3Q0UncycUtJcjNnOS9reUx5V2NZVmkxN3FtemFiR3RCN1k1d0wrSTdFVmdQWmN5VFBKVTRiTXNNc1YyVzJVTDZSdjF3eE1mbnNnWThYbVBkdC9CbHhPdlFUS0l3d08zYW9FdURlWHU0cFJaL3BYbGlGOEk1aGdVRGZZcS96K2FDb2xIRTQ3ckJYWG1QY0tNbzFOUEs5TTVhb2NWY0tNRmE3VWxNcmIzTlNXUDdBYnpwdWNpNk54WlhvNkcxbGR2WTdIK3VkYzNEaW9sbXNZNTlYSVlMYmJmeUVRUTc2WDIvTkNpdE8zL3RlTU9nRXZ3b3JFZjBhNUJPeTRIMnVXcHNSUmFRV2FmS05RcjJWclU3WjFtUERIbjEyK2NmdUJ2WVdpSDlUalNtY3JQOTUzNm45eVVQaDdhcFUvbGZmcUxNRDEwQkZRMU1jaEpNV3Q4c21UYXpQcTFiRWFUYXkzd2Zhb3ZCVWJtVUpRS3ZCMFBtbmU5anNOQU12V0pqU0FPUmhEZytOa3Eydk9HelJHUGVQeWVMdEk1dFg3VDNlQWUvUzRGbTJUNElXbkM3Q2dMS2FlSHpDa1hxSkt5RVdHbFc5eGdTaUNYWSsyeWY2WWp4NWVpWEhnZk5BRnJuWDFrNEQvREplYmRUaEhpT0dLNzUvZWs4azJsVUdETVlYMEk5OVZrTUk0VGxjT090c09oRTRoYjIrSlFLRStsOGt4bkRDV2l5bmpNeTkvMGI0akcrS0tNanZBdXI1ekx4eTFEbUdzd3psU2taVWF4aGhIc21odUs3NmdDQ2dSaE9abThDblcxcnpCdDVFdUZQZk5hLytxNXM1VEhaRjJ2WlNSVFpEdGRJNytTM25VVXpBZVJkSjBodHB2eGswVHRUcWRJd1hGNGRHZjlZOEtHZDRnc1pOb0l3ditYenV2VEtzL2NMZmV6dlA1M2hCSkJVYklpNElEcUEwck1XRVhOc1VkQkhwelg0bVpCNG43WkhTWFhJbDdZVmk2cDJESFh3dVlHeE4yeitLZ1VGMkJQa0ZrTlo1bDdaWGFrN01zRU5XbUpYYnlZaVBoL25XeEFDZ0ZyNGRqWkIxcW1aQU4wMXRVT3dYQXZTUksxdHBPci8xdVZBVmdQQ1NxSWgyaWhEOVo2WDRxa3JaSThyZmhFRUpaWS9FNzEyS0haT2RpbVhHT0lPSE1hL3ZmUDI2R29DWE5oaDUwclhPRkxrUVBZcGZpRUtTVVh0WEVOdExTVW13cVRRRU5SSnlQdlZISzZJSlZsYTdPTWVVZnBlVEcyY3BuSHJWVjdla2FILzRCd3hjMzlSMTIzZDE1UjI5QytsT1J1R0hNcTJLN0U2ZWxXd0piUUR2bUFIMDhSbTJNSUFFOEdrU1NuWVRJK1cyTUJVUDBSa1ZVZDJ6OU1yeHhJM1NkdjdIbE1CeXdFWXEvZGRUNXduYlpBTUJxcmtiSUdvRUFBNTYwYzdFUzdCbmVjOEhXY1NtWThsOVQySFZPa2FvZTJnYVJ0NEJwRXJ0bWY2cHBYZ2ZGYWk3UXBBc2ZVeENRS1RFYmxibVVudWdsVXFzMEx2MGFYTHJFL1ZLWlJ2b2IxR1NuVFZqNUNqbUhTbjUvTDdsZ3dycGJzTFhuUFYzaW5GL3dmeHY5NHI0MzlJMzNiSGdnTG0yNWQ3QlJGbkpWOEVnZlhKUUloVjRZZWtjKytlcXNnVVNBRlhSVUdzME5NdENveDA3OXJjYk4xVkhoSXZKZktVZHlOVVdibWYza0JobXV5S3RHa0xTZ2NaL21BVk9tQlZJR2NjZ0NKZHRzOXBzYUxxV2tBc0t6UjdhMGJ1RThnUVdLbjd0K3lUNmtRbVRmVmdDY0wzUnI4Uml6Mk40a0JhenloS2ZNU2loMzZYVktrUlFyMzJLR2IxcWJ6ODRVODVkem1xdzVza2hlTG5uZ0dhM0hOeitBcnMyd1pLTS9zOUdiMEt3R21YbXl4VUpXN1JTL3dNY0o3ZXRoVGZiU015MlJOTXRGa1JKN0poZ1RSMDNJa0VMY0lsK29iQWM5TFYwQ1RENUY4WkVRWG1FcEZRdHhraW0xeVhveUNpU0VNc0ZXNGZHSkVWcXMrb3lDYWMzUE1xbHpSejFZejdmU0hyQ1dmYzU2UHNsRUtYYnAyU0JJWmREMFA3NzBXQkJldkQzVXhvMnJrVlFhSjZkbnNqbjdjczE3TWFiMUZHV2gyTUNLUzBKWlpLMjlrLzJMSkM2bU5xWCtPdWQ4am9xL0lmcFJqNE9DRzByVWNxYVBLNUVaWFpZRjJCZUVTVURJaDViR2hiLzhUc1FSQndTaGFxdjQvWTRVSnh3OE1VcE0yUmlZZXlHRk5NcDNRU0J5T2o1eTJROVZ0R0dZb0Qra0NCWkVja1JaRWZrcG1Cdm9UL0UzZFZjS28yMWszWWVTRVRqbVhyZERITjZkcmNkcCs0eU5Ha1JmYmdHcVdpSk1zUGhsV0QwSWtUaXJjQmZHenFya2YzSmlPYXJNQ1hER0V5MU5CM2pxelVmYTFaWk5JRkNoc2pqZklIWXl6TjdldFA1dFVOSnZybVYzWFk5YmtBMzhTeXZ5TFVQU1drK1VqaFV2eEFBa29RaUlCdlFlZ3MwODNCU01jSkQ1RHpQOHZJWVllSGNBcmpDL1VhVkRXalMweldSU3BsUkVON0FwcmIyblZCUy9UNGlkUGtGckRsTWZqTXJjNEsvNXdrRWVBVEVLOTl1bFFsNHNLRjJSbzQyWEh6emhqdlNSVW5wa1RUSnlBdVVpMEhVc2d0MnhZTmFsL2VPaDlqbVAyMmdLTG1mNk9kRlZJY09MaEdFd09qTEhtd0I5RklJbHN2b0N0OFQ5eDdqL2t4NHVXVytmSkZvQngxQ3BEMGRYYVhpWThtekVWVmoyMEVmWWNic25kblhZN3UrdmZZU3NiWS9ZdERFV3hHM28yQytodUFteDZ1YkV6Y2k1d1ZaaFM2TzV6bmoxTzFKZlZ6QWhweFVTdlhiaW5BSllIQ3NHUTJmR2hVUGNrcVhnSzk3WUlScE1XR29sN1RhUS9qcG5hdmdqUkd2aktQeHJOVHdLR2ZFUWVHd0Zoc28wWXh0eEZ1UlFmM0kwQ0wxZHZ4U01Cc29BaFJNb1hJNkdveWdEdlZWRDRDTFptZzFBbkp0WnRCcWVkd0JNQ0g5S3VvcUFVNjRVaWV0Ri9jNXdCWllsT0tQclRxRUpuZHRBMnVHaUx3REpNMTdSd08yM1pGSG9DS0hzc1EwUFZlYXcrNmNMaGhTSWMzSm9OZjdHNXM1MVFkaENRb0Vnd3Rlano4KzdLQUY4OFp1TWpYMEVqZ09iV1FFM1h3R0ZONmpiSjhCcU5ub051cmkvUG1Zb0hmeDN1S0J0cEFlMXRHSkI4VThYVEdhR1owZHJac01KMFFOemEyYU1uSEpWRjlkbXZjN0J3aWJmaVU5bklVWEhzaG1jUkVqNTBzS043RHRONkt6TmJ3NFVIbkZiOUNrNTZwcDkxMjQyY0RPSXRMMG9rbHp3VUgxNXp5bkNIcGoyRVJvQWlNUFh3VmtsOHowTkZnM2psSERCRFpDdkJtNzl3eHMyay9RUXZ4UDNVMXdiWisvQ1F6dTJSTit6cHBTN0FuRUk0SzFtMk0rM0lWdjJFcVlzeFFhVWNmNXE0TVpSb3QyRjR4RklXYWNNcnZCV3pQYU5zd3FmRlJSdm9ZaFBpdFd4Y2JlaTdXTXlPZlZ4WnhuRndDQnExd3lTYTRCbnViWUpldkRGeXB6VlNkZG5UeEFDclZhTU1uZ1hxQTB3VXBJbVVxcXpKWFZvMzUxNXNXbUpoNU10cUp0bmREUkhNY0kxMjBKaTFPUGdzbWYyVWpPeWU3TjNYVldUVTZxWUxNMjRmeHpZbjhnS0JIazRnRHV5R1YvT2kxOTUxMUlGRUVjZmdSMEZ4eEU3c2o3OVpkK3VST1dhWmZtMStIcGxEVFducVBjVFZFcGNGUWc1QlBnUnB0ZXFOalJ4VHVaWVN2NDhTSytUMEF1M0p5V1JHZXZHTUFzQjNlSyt6aS9lS2FxRnJsQ0tHRlQ2dkRqeWlzbWtYanpNY0xWTHRzVEdRZ1RPQXM0aE0vT3lvZ01wVGIxLzBPM1FmYnhJMTM1aVRkN2FQQkxCTEpIRG1Zd0pZRk5jWHpGVnY0dU1JR0YweC9hZWlKWDFKZ2UrNUxHbW5ML1JoUS9sZGp6Tk81U2svQUdlZW9tK1J6RXQzMjM3MFFHQk8rKzZwTjgrd25xcktueDhCQkhZUldrU29ka0VDTkFXVnRjRTViRTVBcnJpdzJqakI4M0hUb05kdU4zTjBhTEpweW44SVVsWDFxQlU4MlFkaHg4MUMxcUViMWR1TmN2MVB3SWIxcjZlUEJWeStrVlFCRGR4VWtXSHZPeStDR1ZhY21kWVBJMEhBaEVtYnpTMnJBUjBIdER3QmFZRW5WenpjVkt1eCs1NW5jS0o5Ui9NWGJEMlpzeVo3M2tENjVvMnJaS2piL1pLcFhzNTA3aVVSZHp1S3YrTHNHb1l6ak1lUjhkOHg0OXN4REVQaGkzS0JIT2U1UkVQUERRRXNSOGtSQURMamF5Q2pPM0p6MTJrWERpcUxjSHVETjJ3R3JiSnBLcmxnY2tVQlBVaXRmK3hhOWx4dk1MMGhTckM2dXFxendQWjBlTVZPUWs5VFFyMDNadzlwTTZXUHdWWG9KMEZjbGFsWEFRR1ZyT3pmQ2x0REErVTlzS3AvUkY0RjltNXV6VFB0M05TeTJ4Y1djc2k5ZkxkUnQ0Q1lFRjh4cVBlRFlGY1p5WFNDS2FBbGd1ZDhwU3czaVhQdEhNMENlTmozb3RNYlNTcFVCMjZqRDlrSlQ3NWRpV09VamRvQzV6WXpqeE4rcENTNnoxWCtQcFU5aUVzOGhVcUI0RmxJdjhlclNsUmRDNnVNcy9GK0ttYllGN0x5VHR0UzEwQm9CTFlPWWZzeFVZQ0ZZQzRDNlpZSXEvNlA2dWVSUzBQc2xlSk03SVJ3Vk0xYUpmVkpsQUhMb2NiMmpOMXBueW5IazRobmY0Y0RMY2p4NVFxd2NhZ0ZBcHFQMnpZRDViSE9FY0hScE1nKzRraTh0dkwycUJLazdvYU1LVWlJZHB5cGtmTkVXZ2tYSnpDOG1pWkpRS1YvZms5K3BkcjlNUm1lMU5ubmtuTlViT212S0FFajRPeXk1OWdFUEdTYVRtQUNxTTNlbVFXZzVJMmhtU0szdlEyUTYrbjRwOTkwa1pnbmdmS29Ldkg4bk5ralpyUWluT1ZLRGs3YUxYVUVYS3N0ei9NV2tMeVNzdUpyYlRtZzh3QTNYODYwRzFHdWp4WXRMUGpiSm9EanQzZmJ1NHo1dGlCdUhVcmdhaFRwZWFNYkVTNnZXODh0eWtRUlhKcVRGU3ZVaGIybWcxKzdRS0p6eDY1WTlUS3BZSUhtZjRIczJOZm9oQVIvUE0rSDBrNERtRHlENXU5MkJlcW9pK29SZTRCZXF5dnIyMW8zUUthZ0VYemFTSVpQdVdkSnVnLzkzbjJOS1ZrVGhyY2loRm5KVi92ZHpKVG1mSWRPM1hPMFFaWHdIM3d4QUlrMDlGcU9xaTAwZnVQWUpqUm1uelNXbnU0NDFlYTRWSEoweTBYVkdmQUEvV3J1dUtuMklaY2luMkswdUM4SWF1d2FHNmJQem12dkY1YTQrM3FyczhRUDZDNnZSS0VGd0J5WEszNWtlWEtQU25ZOFdyeGNxaUVlRVN3M2tsZmhVVXQzRjJmblpubGJRellUYmswUXBpMkNIdFJjNWEyNGdUOWFKZE5CQ1hEVnFBYmE0RHNxZElSenJUUGxKOGFiVU9yOFRUTlVKQ2JPYUJObDU2ZXlwT3pQYWxJV3VhaE12SWI4WGNjcWc3RUt5Z0NlcUZoUVRxSjRESDJnVitGNWEyY0krK0tsUkdSRld5TU1KV25POUVHaWFsNng4YU5DWUJRM1diSlhhM2xzbHlMZ2ZxQnlJa1pLcVZwVU51a1BJSklxNUV1MnplU1R4RlNZckQvYlA1bHNjVDFrR2xmdnZzbEF2czV1dklBR2gzTTErL2h6WmpGeWREaGtlOW9UTnhaWUNCbHMzVXVWWGZJVGxkdzlQVG96WUxHREozTHRGLy9PZkZpM0l0SXlFM3c5bDg0TytFMElwcFlnVjVKYnRGMU1zWVoxRHozS0tvK3ZBOS85TS9WWWtXVlZ5YUN3UVJwRG92UkJLd0crbHFnN2UyR0NzS3dzcFB5bGFEVFYxQlJiTDYxQ2FzWUR1T2xmZURaVzFUN2U4bGdRa3IyRGgwdVlORDllL1RzaFFiQStMRVd5UTFHUnRYY3FrKzJ2Nm54SDZadmprUDZtMjFacjBPODl4aU9YVDRIR0hNOHVNL1k2MWt3eDZnMElob1dzWCtteDZIZGlDSE5aU282algrMDMwbllkdk5jd0dUbXNuOWthVzZONG5TU1ZGYk1taW9naUVOUVlyUFdXZ2J1aitjN2VZdHZtclVFaC9EVGFacEVFVlVHSkdxRXhtdHU3NVRMaDVUQk50c3c2NWFXZkJYd29xelNvMW5HU1IvUW00dkcrTSs3eEsycUg1Q0hHTXN3NGw0cW84bkVpSnR4Y09Vb2dwc1o3N2pUM0Q5U01lMXpCNEpQdCtJdnJQakkxMDVDVmo4THFtY3BwY3BsSVJsYXFTME1zSzczMS8vLzZzZzJYWGFpcURBeTJkY2NUNkNUWlJPOG1KMEd2UnVzMk5hcENiNXFQWWtEdlMyWjdqOUlsUXBWcTdjVGdxb1BZSENvSUxnbytUVDNpT2dqNk9SNHpPYnhQcG5xV0RtUE9RZmV0YkVrVzdoaWIrQk1CWVI2SCtBMEc1VmdBSENtRGFna0NVWEZHVU5YaUQrRGJtaFloU2ovblp6c0JGNmtCdXEvWFpXOENtYkliUm5ZamZMVGI3ei9KVVFmSTJ6SHFlcXR6M0FpWGQ3R2pQU3VpYm9QS3A0SUVhVmJkQnl2dm9sUEhIcDRVQ0pqR3QzUEZ3SW92TnZBbzViRzBKVUZIOEFQajhaU2pMNDNrT3NDZGVHL3l5MzJZUjdQeWNCeGNzUU5XYmcybm9BWTJUM25JYmpKT0g0WkRBSnpKdlZxbmN6cUNLUWlaZXpmNVFuZ2JEL0FuTnpFUWVDbTJNNnZ5UDM0QkwxdjFzZ3kxSmRFc1pYRUdVOGE0RDU4OWw1aUk4QzB3ZGlSL3d5YmM2TEkwc29ZQkRSY0JXQWwvZm5Lc2lsMGt1MDRIYWd6NkRKNFZIc0x4bmR2dlpXWUJhS2pyWEpXZEJRVktsQXJaazBQeTl5ZjM3NEs4R0tpSFJobzNoUXFYdWY1eXNkYzhRK3dYNzduUTF2L1c3Q3RDMmU0U010Umd4TGlyWnpXVVpyVzQ1VkpZOUlnOFZLODh4ODIwb1FVUWFmYUlKd04vMGZZSEEzREFiUHVmclBuR2N1ZE1pZTlFYldTNUZTcklUQnMzWFhIeHZrMFUwV2pMMVlwSHVuOTJKZFYzV2t0ZSsrd1B5S1VjZmhETzlESGRBZWhRTG5rb29ZUklPcUhHNEtvckExZDVKcmE2cmdGUDFVdXlLQTlmRnpwaHprNkxRNDBRbkpyaHovZUFxU29aNi9ZNE5Zb2Y3M3ZTclRWTFJGWUxYaW1BUTlTbHZXV2RtSm05Z0tIbzBYRmVEbDV3YWM0VExKR0gzelAxbzJsRmc2OVFXQ25VbW10UVlaTkszYXh5SkpQNmlZUkdTbXpwYk5VZXNkN2ZLK3Q1QXNxMkU0am8rK1JUSkpwQ3ZWcGYrK2RWOTJCWnI3Z0JFTXVBbVhUc3I3bFRRQmN6bDBoUkMvaTVlbk5aWUJ5aTNsWGZ3UVBvRWVxZElaRVFEemlIbFpsOEVBY1hLL0dEZ3FSMnpnRGlpTmlqaDRqdUlQQTJuc01mSlg2aXJOU2VFaWNlb0VhVmNubFZJY09qMGp2bUdZSk5MNGEvSDlzRTN0NGJYZnJKWSt0N3lRVUo5MzFreE1JVFVmU0RCdjY3akY5NUlOVHFwOE0yQnQrb0tWRjlNdXhGRmJaYWlhNG9xQWpvakVna0VFT0NiNUVjUUdZWjFmVkQ3bnJzSXp2R283a25lZXZHdXdFd1FtQkJmUGlscy9DbmE4YnU1WStqcUJmamQzdVo3YVB6SjhXT0xGNmhuSUkrNHdZWGsrMkFacEIxN1ZSN2N1UzByQmZIL3JVQjJOWG1ReEZ5WXV2ZmI1d1ZlKyt2ZmNVczFDSGlETWI0bEFzMUJBbFM2bHQ5bVVCZm0rb1k3OC9EVkFZNWw0SVU0NXRSODAwQVZkcDZXcXV3YWtlclI1QnBVNWNhMzMyWXBBcmEyVXFSTklaMzJUSlNGS0YxNWM2NkpDZEV5UDJmSWhmZWZWWGQxMFVQazJWUnVVMUtPWjFvcU4vdGJLSXR3NEVreWZVeTlkQi9Jd1Z2UWtpdG5BcW9DQXF0MnlsK0p5K2x5c21qZEhoNjJTZTFZYUkxNkVqU3pPZE5BNDJacXlGOFIyUEV2Vk0rOUlLRVB1OVBSaFRmS1Q5V2FtdFNVZzN6L29lcWMxNmREQ2lCN3ZHSjQyU1dMa3pVWGcyNWlhS2R0QmdMajVkRlcydEppUWtNY3VzdTJXWUtOc0V1VFNMYWUwODhWNi9FUzNqMlZTNGN3NXI5d1ZLaldOaExDZlNsSUJrVWVneWkzdFFZZ3hFM3BmTW50U3FrOG1FaitMcjAxRVBNZXB3ZjhxYVFaUkxLbmJsTVNWYVd3OGVzcUlNNHdFUFpCNzd5YWFWZVMvR1FFeVFDc3E2TnI3ZGg1SHVTNXFYQkxja0VEZStZYy9oc0oxekVRQ25lNEV2ekQzc1ZzQmRNY3ovbW93b3RLMUU5bm00TXVQZFQ0RzZxU1A1eDdtdmIrRnBXWWxiTTc2TTZ0NjNqaG1jK0hsQ0NndWpGYy9kNnZLQlBGYTlkSk16T3p2c3dJWWJqUkoreGdieGFzdDl3UTNPREE4aHo4bWhEc05mRXkrQ1Vxekh3Nk9JZ0tTVnVKMElhT3hJWUZiSXNLc1JQWk95OGZQZzQyS0MvTUpBYkdNaWp1bW85aFR0YjhpUXh0TVlXc2VOdGplbUpQcDN6R0JYMElxY0VlaFJuK1owaWYzZ1lUcHhsSmFrMGJhMEpvd2EzR0hnNmxIN1N6L3pJMkY2aDN4a0t6QnZoQjdGZ0x6dHJ0RDVBVkV6dnRiR1lWMG9nb0gyRk5tQ09rYXd3TUdLaHEwT1NMbFFDbncwai9iSU5sdk5YSGY0Sk90RVQvNE5HUkJ0bGE2aGpTOG82R05MMXRLd3BjekdYc2YvdUpJKzJueXE3djUyY2dObFJ0SnJnblBONmhVNzY5Zit5UE9vYXNKU3doUWNQck9GcXVwd0JDSFpYQlhoTTJ0WVZoVWQyR2k0Zk9vdUxUaEY3TlZIQXhhODNudnJMZi9PKzdNdDUvY2hHcDdsbG4zenNRRXhERys2ZGFTRDlJM2Y4VlpCREZWTytaTko1RDlxRWNDWlNRU2lvR3llMmViOHVJWk5acHNOOFV3dDVCbjB3a3lPOXFhRUJqb2s3SWRTQkUybzBHYnZKdzI3NHM1K2hvSFpMbkFKVEgrS2xLdkhNakFISG9QSHRuRXNEWVRKaTYxYm9xQnpBQUtnWlk2cEpIdmMxTWpHRDZYOVViWEl5ZHhOMm12dWs0MTBTOGZLSmVLRS9KMytMNWhSaVVGRWkvYnphV0FBNFVJcVdWUXdUbmR2dXRTWEtwTEdBS2lMaEh6aEdtdzVxVnpyNUVDbmVKN2Z2SEN5NFlNc2RmOHcrYTJDQ2RaV0VxV2hsQjkwSmI4N1hRLzFhVGJrOTFEYnVNL3dWcVd1c1BtU05UM3M4bnVPSG5oTkt0aVZKTWlYODNwcXNoSjZTaUI5QitUWWxZRE50QzhFUjM2TWhzcWJVcFY5UTB4REpQZ0ZWYmI2cmdOaVpLekQ2eHpzS2hUaHprbFRzU3djUEZQVlNtb2plcGE3RDk4SG1MWThiRGRWVmZ0WnF5dDBWWjc4S1A0V3QxejhoWGtJYjNXNFU2aGlidEpWM1pWYXYxQjAyOFYzdjIxNExBbTNWSkw5REgwaTBPbTUxR0NYc0RJaE5IYWw3TXlWNWcxbGVWTjExTWVFeGV0MmNZbVBTT2p3dnlLR1VoQ2pPd2hTZXNKRjVla0lSTWkvaGY2a2RRMkRwaTBxTGV2ZTMwbEY0aHZIOE1jUEg1RUdETnlMT0g5U2RmTld5NnNZQmVWdzludlVYOStTYzBObDVCc3dmZTBZQms4aVhrVytnN2hJaTFmVFVjb1h4cWlSZTVJbFMyZ1VMZDRXdmRleC9pMit1YkNGNFVRbkJNaFUxMVc5WDNoWVV3ajZPeHl2dnRoYjNFSHNxai9pMHNnY0hjbUJaNzR0RnExMTBmVTVsZ3Y5RE5KMC9yK1RQQXJtdC9rQU5OeXB6clY5THpKYU1VTEJidlI3SU8vcXltTTVRYU0yaGIzWFZQbzAzbE04Sitvczc1blZDZ0RjaUZOZFQ5WmJoVENhS01hNTRwVHRlTnlkYi9sWkQ4QU5pck1ZY205QlNGRS9qbFNFQXFEekJaay9rNENGL2U5UnB2WlNWdEZ2akhrTlV4aXlVblV3TTlJSTBxRC9TdHBoT1NhRGVQeGxLQ0YwQ092bzF3NWdoNkZJVVRpSFhXM25IaWdQL1QvVXJ6UUV0RU03ajVkNTVYdTNDNElzak80NTRNVUozOG52ZVZQeTd5VnI0TEF4N3dpMlBsRTdrc2pLcXVVaEtRaldQeHJmTjA4ZXVCQ2RJM0UrNzMvUTJUWEVjcnhiam9ubkxUMmdvOTNpMXhJQk1PTnFVc3RvaE8yMnNhWk53MG9qSFFSREI5NGVGNDgyRHVFYnBodTRJQ24xcDlNM21wSmJYbVdUQ0IwSi9NZHZ5QmROMzc0aFlWd2lLMXY1VGsvS0pMMkYxWHlPN1lXVCtsVW5nUmVhcElPMWw1Wm4xMTlOa0FMV1p1M1BFSVpkcVRGSmNRdUdiaHFCZFR5K1o4ME93aHdNTEQrZzVVcy85TnJkb3NWc2VMVmlwQmh4V3JBMjZheDFkK3pvZmxpVkdtSjZnQmpqL0tvTlVpWXpnUVNZMTJPMTM5WEF3K0pTdlhMSXlLVXlhMlppMVNOWUN0NFlGWlNPNzlpTUlSaTc1RGtoOFFOUUtBM21ocHA4SWJkYy90QmVUTnV2NjROVWV0K0dEYjMyOWJtc2RrUEU0allCaU8xbjczamVqMG8yNm53UjZ5QmQwTTdXckgvWHpBMElvVUd0QkdGdkhDUWkyTjBjRUtTZWRjbDIrRnNKRlhEVnFTUlE5cnVYRXIwZUp0R2dadk5kb09BaThGTzNWYnRSN1VUMHB3Q2RzMENiVk91S1JTUFV1djczb2lWcFRVcVQ4dTFhVjFBK1l0UHdJWm9CSkkyZ0xSeEtPeHVTUmdiZUVZWG1nTVJCUFRtNmdPb3RIY1FFeFR1Z1BwTm83Y3pKblBScmo0U2lwOUxuT3ZId0FVK1RJZnM1VTI2U0x0RjBxTXRqaGQwdXBOdnhWclpxRjhNMXpQYnBHRmJlOXl0ZDZBZnhLSzR3dkZYb3dNZ3l5cnVucU1HNmV1cXdwc1lzQVF2bHBtVXdYNHpHTXpkVzVqZGF6dDRJN3hmS3Z5Umg4Y2ZURzlDcEhKTFJjc3FRN0hXbm1NT1pscHdBYmI1VDZsQnVReEdGUDkybU45NloxVHRMbUhuY3RKeGxxOWRpUDFNVm5ucXdwQXZEQ1hEckh0UW0za1psalduZ1p2d2lmakJSMUpHMldwWDFXYnhvK28vVFp3NzY2V2hqejZkS20wWTZsUVJEWkhpOVZ2a0EzaFprVDQ0djJPK1M2WEhTT0Jrb0xSdVJRdTBKblptaEVLbjBPekQ5RmI5YUsrYjZnaWZzTmNTNTRJWmpzN1hZa01vTk0rYTZhVG9zZkhyZS93R2RWYTdkM0hMcjlSMlA0QmpST25QTzQ5U05jSE5aSlJVcysvNHNycnh1SXV6dmc9PSJ9";
 
-async function revealContent(inputPassword) {
-  try {
-    const ct = JSON.parse(atob(ct_serial));
-    const decryptedText = await decrypt(ct, inputPassword); // Await the async function
-    document.getElementById('contents').innerHTML = decryptedText;
-    // console.log('==== conents below =====')
-    // console.log(decryptedText);
-    // console.log('==== conents above =====')
+/*
+ * innerHTML does not execute scripts.
+ *
+ * Replacing script nodes with newly-created
+ * script elements activates scripts contained
+ * in the decrypted HTML.
+ */
+function activateScripts(container) {
+
+  const scripts =
+    Array.from(
+      container.querySelectorAll(
+        "script"
+      )
+    );
 
 
-    // Regular expression to match <script> tags and capture their contents
-    const sre = /<script\b[^>]*>([\s\S]*?)<\/script>/gm;
-    let m;
+  for (
+    const oldScript of scripts
+  ) {
 
-    // Iterate over all matches and capture the script contents
-    while ((m = sre.exec(decryptedText)) !== null) {
-      var ns = document.createElement('script');
-      ns.innerHTML = m[1];
-      document.head.appendChild(ns);
-      // console.log(m[1]);
-      eval(m[1]);
+    const newScript =
+      document.createElement(
+        "script"
+      );
+
+
+    for (
+      const attribute
+      of oldScript.attributes
+    ) {
+
+      newScript.setAttribute(
+        attribute.name,
+        attribute.value
+      );
     }
 
-    document.getElementById('password-input').classList.remove('error');
-    document.getElementById('password-input').classList.add('success');
+
+    newScript.textContent =
+      oldScript.textContent;
+
+
+    oldScript.replaceWith(
+      newScript
+    );
+  }
+}
+
+
+async function revealContent(
+  password
+) {
+
+  const input =
+    document.getElementById(
+      "password-input"
+    );
+
+
+  try {
+
+    if (
+      typeof ct_serial ===
+        "undefined" ||
+      !ct_serial
+    ) {
+      throw new Error(
+        "Encrypted content was not loaded."
+      );
+    }
+
+
+    const encryptedData =
+      JSON.parse(
+        atob(ct_serial)
+      );
+
+
+    const decryptedText =
+      await decrypt(
+        encryptedData,
+        password
+      );
+
+
+    const contents =
+      document.getElementById(
+        "contents"
+      );
+
+
+    contents.innerHTML =
+      decryptedText;
+
+
+    activateScripts(
+      contents
+    );
+
+
+    /*
+     * Successful-password feedback.
+     */
+    input.classList.remove(
+      "error"
+    );
+
+    input.classList.add(
+      "success"
+    );
+
+
     await sleep(1000);
-    document.getElementById('render-container').classList.remove('above');
 
-    document.getElementById('password-container').classList.add('hidden');
-    document.getElementById('about').classList.add('hidden');
-    document.getElementById('logo').classList.add('small');
 
-    // set the password cookie
-    document.cookie = "password=" + inputPassword + ';samesite=strict';
+    /*
+     * Hide landing-page content.
+     */
+    document
+      .getElementById("about")
+      .classList.add("hidden");
+
+
+    document
+      .getElementById(
+        "password-container"
+      )
+      .classList.add("hidden");
+
+
+    /*
+     * Switch the whole layout into its
+     * unlocked state.
+     *
+     * CSS now controls logo resizing and
+     * its relationship to the content card.
+     */
+    document
+      .getElementById(
+        "site-container"
+      )
+      .classList.add(
+        "unlocked"
+      );
+
+
+    /*
+     * Bring the protected-content card in.
+     */
+    document
+      .getElementById(
+        "render-container"
+      )
+      .classList.remove(
+        "above"
+      );
+
+
+    /*
+     * Don't retain the password.
+     */
+    input.value = "";
+
 
   } catch (error) {
-    document.getElementById('password-input').classList.add('error');
-    console.error('Password incorrect');
-    //alert('Password incorrect');
+
+    input.classList.remove(
+      "success"
+    );
+
+
+    /*
+     * Removing + re-adding the class forces
+     * the shake animation to restart.
+     */
+    input.classList.remove(
+      "error"
+    );
+
+    void input.offsetWidth;
+
+    input.classList.add(
+      "error"
+    );
+
+
+    console.error(
+      "Unable to decrypt content:",
+      error
+    );
   }
 }
 
-// Set up the event handler
-document.addEventListener('DOMContentLoaded', (event) => {
-  const inputField = document.getElementById('password-input');
 
-  // check if the password is stored in cookies
-  if (document.cookie != null) {
-    let cookies = document.cookie.split(';');
-    cookies.forEach(element => {
-      curCookie = element.split('=');
-      if (curCookie[0] === 'password') {
-        revealContent(curCookie[1]);
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    const input =
+      document.getElementById(
+        "password-input"
+      );
+
+
+    input.addEventListener(
+      "keydown",
+      async event => {
+
+        if (
+          event.key !== "Enter"
+        ) {
+          return;
+        }
+
+
+        await revealContent(
+          input.value
+        );
       }
-    });
-  }
+    );
 
-  // Input field event listener
-  inputField.addEventListener('keydown', async function (event) {
-    if (event.key === 'Enter') {
-      const inputPassword = inputField.value;
-      await revealContent(inputPassword);
-    }
-  });
-});
+
+    input.focus();
+  }
+);
