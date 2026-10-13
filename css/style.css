@@ -632,3 +632,344 @@ s {
     font-size: 1.2rem;
   }
 }
+
+/* Styling for the Embedded Sharepoint Form*/
+
+.form-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #6366f1;
+}
+
+.form-header h2 {
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  margin: 12px 0;
+}
+
+.form-header p {
+  font-size: 16px;
+  color: #888;
+}
+
+.form-wrapper {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.08);
+}
+
+.form-wrapper iframe {
+  display: block;
+  width: 100%;
+  height: 600px;
+  border: none;
+}
+
+/* Expand/minimize button */
+.form-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  width: fit-content;
+  max-width: 300px;
+  padding: 16px 24px;
+
+  background: #6366f1;
+  color: white;
+
+  border: none;
+  border-radius: 12px;
+
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.form-toggle:hover {
+  background: #4f46e5;
+  transform: translateY(-2px);
+}
+
+.form-toggle:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: 3px;
+}
+
+/* Collapsible container */
+.form-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+
+  transition:
+    grid-template-rows 0.4s ease,
+    opacity 0.3s ease,
+    visibility 0.4s;
+}
+
+.form-collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+}
+
+.form-collapse > .form-wrapper {
+  min-height: 0;
+}
+
+/* Prevent the iframe from forcing the container open */
+.form-wrapper {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-toggle,
+  .form-collapse {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   Attendee information and schedule
+   ========================================================= */
+
+.attendee-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+
+  margin-top: 1.5rem;
+}
+
+.info-card {
+  padding: 1.25rem;
+
+  background: #f8f7ff;
+
+  border: 1px solid #ded9ff;
+  border-radius: 12px;
+
+  box-shadow: 0 0.5rem 1rem #00000012;
+}
+
+.info-card-wide {
+  grid-column: 1 / -1;
+}
+
+.info-card h4,
+.schedule-section h4 {
+  margin: 0 0 0.75rem;
+
+  color: #5a32aa;
+
+  font-size: 1.45rem;
+}
+
+.info-card p,
+.info-card li {
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.info-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.checklist {
+  list-style: "✓  ";
+}
+
+.vehicle-list {
+  columns: 2;
+}
+
+.speaker-name {
+  margin-top: 1rem;
+
+  color: #5a32aa;
+
+  font-size: 1.6rem !important;
+  font-weight: 700;
+}
+
+.schedule-section {
+  margin-top: 2rem;
+
+  text-align: left;
+}
+
+.schedule-table-wrap {
+  overflow-x: auto;
+
+  border: 1px solid #ded9ff;
+  border-radius: 12px;
+
+  box-shadow: 0 0.5rem 1rem #00000012;
+}
+
+.schedule-table {
+  width: 100%;
+  min-width: 680px;
+
+  border-collapse: collapse;
+
+  background: #fff;
+
+  color: indigo;
+}
+
+.schedule-table th,
+.schedule-table td {
+  padding: 1rem;
+
+  border-bottom: 1px solid #e5e1f5;
+
+  vertical-align: top;
+
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.schedule-table th {
+  background: #684eff;
+
+  color: #fff;
+
+  font-size: 1.1rem;
+  text-align: left;
+}
+
+.schedule-table th:first-child,
+.schedule-table td:first-child {
+  width: 8.5rem;
+
+  font-weight: 700;
+}
+
+.schedule-table th:nth-child(2),
+.schedule-table td:nth-child(2) {
+  width: 12.5rem;
+
+  font-weight: 700;
+}
+
+.schedule-table tbody tr:nth-child(even) {
+  background: #faf9ff;
+}
+
+.schedule-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media only screen and (max-width: 700px) {
+  .attendee-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-card-wide {
+    grid-column: auto;
+  }
+
+  .vehicle-list {
+    columns: 1;
+  }
+
+  .info-card p,
+  .info-card li {
+    font-size: 1rem;
+  }
+
+  .schedule-table-wrap {
+    overflow: visible;
+
+    border: none;
+
+    box-shadow: none;
+  }
+
+  .schedule-table,
+  .schedule-table tbody,
+  .schedule-table tr,
+  .schedule-table td {
+    display: block;
+
+    min-width: 0;
+  }
+
+  .schedule-table thead {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    overflow: hidden;
+
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .schedule-table {
+    background: transparent;
+  }
+
+  .schedule-table tbody tr {
+    margin-bottom: 1rem;
+
+    background: #f8f7ff;
+
+    border: 1px solid #ded9ff;
+    border-radius: 12px;
+
+    box-shadow: 0 0.5rem 1rem #00000012;
+  }
+
+  .schedule-table tbody tr:nth-child(even) {
+    background: #f8f7ff;
+  }
+
+  .schedule-table td {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+
+    padding: 0.75rem 1rem;
+
+    border-bottom: 1px solid #e5e1f5;
+
+    font-size: 1rem;
+  }
+
+  .schedule-table td::before {
+    content: attr(data-label);
+
+    color: #5a32aa;
+
+    font-weight: 700;
+  }
+
+  .schedule-table th:first-child,
+  .schedule-table td:first-child,
+  .schedule-table th:nth-child(2),
+  .schedule-table td:nth-child(2) {
+    width: auto;
+  }
+}

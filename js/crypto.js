@@ -285,6 +285,44 @@ async function revealContent(
      */
     input.value = "";
 
+    /*
+      Add form toggle stuff
+    */
+    // Javascript to toggle the form visibility 
+    function initializeFormToggle() {
+      console.log("DOM state:", document.readyState);
+      console.log("Current page:", window.location.pathname);
+        const formToggle = document.getElementById("formToggle");
+        const formContent = document.getElementById("formContent");
+        const formToggleText = document.getElementById("formToggleText");
+        const formToggleIcon = document.getElementById("formToggleIcon");
+
+        if ( !formToggleText || !formToggleIcon) {
+            console.error(" toggle elements not found!");
+            return;
+        }
+
+        formToggle.addEventListener("click", () => {
+            const isOpen = formContent.classList.toggle("open");
+
+            formToggleText.textContent = isOpen
+                ? "Minimize Form"
+                : "Open Form";
+
+            formToggleIcon.textContent = isOpen ? "−" : "+";
+
+            formToggle.setAttribute("aria-expanded", String(isOpen));
+            formContent.inert = !isOpen;
+        });
+
+        console.log("Form toggle initialized!");
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initializeFormToggle);
+    } else {
+        initializeFormToggle();
+    }
 
   } catch (error) {
 
@@ -347,3 +385,4 @@ document.addEventListener(
     input.focus();
   }
 );
+
